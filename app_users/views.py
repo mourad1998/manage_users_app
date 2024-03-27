@@ -135,7 +135,6 @@ def userApi(request: Request, user_id=None):
         try:
             # Fetch user object by ID
             user = User.objects.get(id=user_id)
-            
             # Parse request data
             user_data = JSONParser().parse(request)
             
