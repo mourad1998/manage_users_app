@@ -35,3 +35,16 @@ class ProfileSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(**user_data)
         profile = Profile.objects.create(user=user, **validated_data)
         return profile
+    
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop('user', None)
+        if user_data:
+            user = instance.user
+            user.username = user_data.get('username', user.username)
+            user.email = user_data.get('email', user.email)
+            user.save()
+        instance.hometown = validated_data.get('hometown', instance.hometown)
+        instance.age = validated_data.get('age', instance.age)
+        instance.gender = validated_data.get('gender', instance.gender)
+        instance.save()
+        return instance
