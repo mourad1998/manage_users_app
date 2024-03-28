@@ -15,13 +15,41 @@ def profileApi(request: Request, profile_id=None):
         try:
             # Fetch all profiles
             profiles = Profile.objects.all()
-            # Serialize profiles data
-            profiles_serializer = ProfileSerializer(profiles, many=True)
-
-            return JsonResponse(profiles_serializer.data, safe=False)
+            
+            # Filter profiles based on query parameters (username, age, hometown)
+            username = request.GET.get('username')
+            age = request.GET.get('age')
+            hometown = request.GET.get('hometown')
+            if username:
+                profiles = profiles.filter(user__username__icontains=username)
+            if age:
+                profiles = profiles.filter(age=age)
+            if hometown:
+                profiles = profiles.filter(hometown__icontains=hometown)
+                
+            # Paginate the filtered profile list
+            page_size = int(request.GET.get("pageSize", 10))
+            paginator = Paginator(profiles, page_size)
+            page_number = request.GET.get("page")
+            page_obj = paginator.get_page(page_number)
+            
+            # Serialize paginated profile data
+            profiles_serializer = ProfileSerializer(page_obj.object_list, many=True)
+            
+            # Construct response data with pagination details
+            response_data = {
+                'count': paginator.count,
+                'num_pages': paginator.num_pages,
+                'current_page': page_obj.number,
+                'data': profiles_serializer.data
+            }
+            
+            # Return JSON response with paginated profile data
+            return JsonResponse(response_data)
         except Exception as e:
+            # Return 500 error if an exception occurs
             return HttpResponseServerError(str(e), status=500)
-
+        
     elif request.method == 'POST':
         try:
             # Parse request data
@@ -92,7 +120,8 @@ def userApi(request: Request, user_id=None):
                 user_list = user_list.filter(profile__hometown__icontains=hometown)
                 
             # Paginate the filtered user list
-            paginator = Paginator(user_list, 5)
+            page_size = int(request.GET.get("pageSize", 5))
+            paginator = Paginator(user_list, page_size)
             page_number = request.GET.get("page")
             page_obj = paginator.get_page(page_number)
             
